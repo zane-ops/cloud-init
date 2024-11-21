@@ -1,0 +1,67 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - curl
+  - make
+  - jq
+  - openssl
+
+write_files:
+  - path: /etc/systemd/system/zaneops.service
+    content: |
+      [Unit]
+      Description=ZaneOps Deploy and Stop Service
+      After=docker.service
+      Wants=docker.service
+
+      [Service]
+      Type=oneshot
+      WorkingDirectory=/var/www/zaneops
+      ExecStart=/usr/bin/make deploy
+      ExecStop=/usr/bin/make stop
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Step 1: Start and enable Docker
+  - systemctl start docker
+  - systemctl enable docker
+
+  # Step 2: Create the installation directory for ZaneOps
+  - mkdir -p /var/www/zaneops
+  - cd /var/www/zaneops
+
+  # Step 3: Download the Makefile for the project
+  - curl https://raw.githubusercontent.com/zane-ops/zane-ops/fix/delete-resources-script/deploy.mk > Makefile
+
+  # Step 4: Launch the setup process
+  - make setup
+
+  # Step 5: Get the IP address of the machine and format it
+  - IP_ADDRESS=$(hostname -I | awk '{print $1}' | sed 's/\./-/g')
+
+  # Step 6: Replace '127-0-0-1' with the formatted IP in the .env file
+  - sed -i "s/127-0-0-1/$IP_ADDRESS/g" .env
+
+  # Step 7: Add the line to allow HTTP sessions in the .env file
+  - printf "\n__DANGEROUS_ALLOW_HTTP_SESSION=true\n" >> .env
+
+  # Step 8: Deploy ZaneOps
+  - make deploy
+
+  # Step 9: Wait for the zane_api service to be up
+  - until [ -n "$(docker ps -qf "name=zane_api")" ]; do sleep 5; done
+
+  # Step 10: Create a Django superuser in non-interactive mode
+  - docker exec $$(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=password python manage.py createsuperuser --noinput"
+
+  # Step 5: Enable and start the ZaneOps deploy service
+  - systemctl daemon-reload
+  - systemctl enable zaneops.service
+  - systemctl start zaneops.service
+
+final_message: "ZaneOps installation completed. Visit http://$IP_ADDRESS.sslip.io to log in."
