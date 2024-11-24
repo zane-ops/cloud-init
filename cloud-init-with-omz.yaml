@@ -52,7 +52,7 @@ runcmd:
   - cd /var/www/zaneops
 
   # Step 7: Download the Makefile for the project
-  - curl https://raw.githubusercontent.com/zane-ops/zane-ops/fix/delete-resources-script/deploy.mk > Makefile
+  - curl https://raw.githubusercontent.com/zane-ops/zane-ops/main/deploy.mk > Makefile
 
   # Step 8: Launch the setup process
   - make setup
