@@ -7,6 +7,8 @@ packages:
   - make
   - jq
   - openssl
+  - zsh
+  - git
 
 write_files:
   - path: /etc/systemd/system/zaneops.service
@@ -31,37 +33,51 @@ runcmd:
   - systemctl start docker
   - systemctl enable docker
 
-  # Step 2: Create the installation directory for ZaneOps
+  # Step 2: Install Oh My Zsh (OMZ)
+  - curl -Lo install.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+  - RUNZSH=no bash install.sh
+
+  # Step 3: Install Zsh plugins (autosuggestions and syntax highlighting)
+  - git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+  - git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+  # Step 4: Update ~/.zshrc to use OMZ plugins
+  - sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+
+  # Step 5: Change default shell to zsh for the user
+  - chsh -s $(which zsh)
+
+  # Step 6: Create the installation directory for ZaneOps
   - mkdir -p /var/www/zaneops
   - cd /var/www/zaneops
 
-  # Step 3: Download the Makefile for the project
+  # Step 7: Download the Makefile for the project
   - curl https://raw.githubusercontent.com/zane-ops/zane-ops/fix/delete-resources-script/deploy.mk > Makefile
 
-  # Step 4: Launch the setup process
+  # Step 8: Launch the setup process
   - make setup
 
-  # Step 5: Get the IP address of the machine and format it
+  # Step 9: Get the IP address of the machine and format it
   - IP_ADDRESS=$(hostname -I | awk '{print $1}' | sed 's/\./-/g')
 
-  # Step 6: Replace '127-0-0-1' with the formatted IP in the .env file
+  # Step 10: Replace '127-0-0-1' with the formatted IP in the .env file
   - sed -i "s/127-0-0-1/$IP_ADDRESS/g" .env
   - ADMIN_USER_PASSWORD=$(openssl rand -base64 16)
 
-  # Step 7: Add the line to allow HTTP sessions in the .env file
+  # Step 11: Add the line to allow HTTP sessions in the .env file
   - printf "\n__DANGEROUS_ALLOW_HTTP_SESSION=true\n" >> .env
   - printf "ADMIN_USER_PASSWORD=\"$ADMIN_USER_PASSWORD\"\n" >> .env
 
-  # Step 8: Deploy ZaneOps
+  # Step 12: Deploy ZaneOps
   - make deploy
 
-  # Step 9: Wait for the zane_api service to be up
+  # Step 13: Wait for the zane_api service to be up
   - until [ -n "$(docker ps -qf "name=zane_api")" ]; do sleep 5; done
 
-  # Step 10: Create a Django superuser in non-interactive mode
+  # Step 14: Create a Django superuser in non-interactive mode
   - docker exec $(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=$ADMIN_USER_PASSWORD python manage.py createsuperuser --noinput"
 
-  # Step 5: Enable and start the ZaneOps deploy service
+  # Step 15: Enable and start the ZaneOps deploy service
   - systemctl daemon-reload
   - systemctl enable zaneops.service
   - systemctl start zaneops.service
