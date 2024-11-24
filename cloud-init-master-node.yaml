@@ -46,9 +46,11 @@ runcmd:
 
   # Step 6: Replace '127-0-0-1' with the formatted IP in the .env file
   - sed -i "s/127-0-0-1/$IP_ADDRESS/g" .env
+  - ADMIN_USER_PASSWORD=$(openssl rand -base64 16)
 
   # Step 7: Add the line to allow HTTP sessions in the .env file
   - printf "\n__DANGEROUS_ALLOW_HTTP_SESSION=true\n" >> .env
+  - print "ADMIN_USER_PASSWORD=$ADMIN_USER_PASSWORD\n" >> .env
 
   # Step 8: Deploy ZaneOps
   - make deploy
@@ -57,7 +59,7 @@ runcmd:
   - until [ -n "$(docker ps -qf "name=zane_api")" ]; do sleep 5; done
 
   # Step 10: Create a Django superuser in non-interactive mode
-  - docker exec $(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=password python manage.py createsuperuser --noinput"
+  - docker exec $(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=$ADMIN_USER_PASSWORD python manage.py createsuperuser --noinput"
 
   # Step 5: Enable and start the ZaneOps deploy service
   - systemctl daemon-reload
