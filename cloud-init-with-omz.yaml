@@ -38,11 +38,11 @@ runcmd:
   - RUNZSH=no bash install.sh
 
   # Step 3: Install Zsh plugins (autosuggestions and syntax highlighting)
-  - git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-  - git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+  - git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+  - git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
-  # Step 4: Update ~/.zshrc to use OMZ plugins
-  - sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+  # Step 4: Update /root/.zshrc to use OMZ plugins
+  - sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' /root/.zshrc
 
   # Step 5: Change default shell to zsh for the user
   - chsh -s $(which zsh)
@@ -69,13 +69,13 @@ runcmd:
   - printf "ADMIN_USER_PASSWORD=\"$ADMIN_USER_PASSWORD\"\n" >> .env
 
   # Step 12: Deploy ZaneOps
-  - make deploy
+  - make deploy-with-http
 
   # Step 13: Wait for the zane_api service to be up
   - until [ -n "$(docker ps -qf "name=zane_api")" ]; do sleep 5; done
 
   # Step 14: Create a Django superuser in non-interactive mode
-  - docker exec $(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=$ADMIN_USER_PASSWORD python manage.py createsuperuser --noinput"
+  - set -a; . ./.env; set +a && docker exec $(docker ps -qf "name=zane_api") /bin/bash -c "source /venv/bin/activate && DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=$ADMIN_USER_PASSWORD python manage.py createsuperuser --noinput"
 
   # Step 15: Enable and start the ZaneOps deploy service
   - systemctl daemon-reload
