@@ -58,7 +58,7 @@ runcmd:
   - make setup
 
   # Step 9: Get the IP address of the machine and format it
-  - IP_ADDRESS=$(ip route show default | awk '/src/ {for (i=1; i<=NF; i++) if ($i=="src") print $(i+1)}')
+  - IP_ADDRESS=$(ip route show default | awk '/src/ {for (i=1; i<=NF; i++) if ($i=="src") print $(i+1)}' | sed 's/\./-/g')
 
   # Step 10: Replace '127-0-0-1' with the formatted IP in the .env file
   - sed -i "s/127-0-0-1/$IP_ADDRESS/g" .env
