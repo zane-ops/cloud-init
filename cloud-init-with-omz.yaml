@@ -21,7 +21,7 @@ write_files:
       [Service]
       Type=oneshot
       WorkingDirectory=/var/www/zaneops
-      ExecStart=/usr/bin/make deploy
+      ExecStart=/usr/bin/make deploy-with-http
       ExecStop=/usr/bin/make stop
       RemainAfterExit=yes
 
