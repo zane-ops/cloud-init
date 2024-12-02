@@ -49,10 +49,6 @@ runcmd:
 
   # Step 8: Deploy ZaneOps
   - make deploy
-
-  # Step 9: Wait for the zane_api service to be up
-  - until [ -n "$(docker ps -qf "name=zane_api")" ]; do sleep 5; done
-
   # Step 5: Enable and start the ZaneOps deploy service
   - systemctl daemon-reload
   - systemctl enable zaneops.service
