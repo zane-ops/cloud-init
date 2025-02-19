@@ -28,8 +28,8 @@ write_files:
 
 runcmd:
   # Step 1: Start and enable Docker
-  - systemctl start docker
   - systemctl enable docker
+  - systemctl start docker
 
   # Step 2: Create the installation directory for ZaneOps
   - mkdir -p /var/www/zaneops
